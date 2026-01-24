@@ -1,3 +1,7 @@
+//! # Loss32
+//! 
+//! (Hopefully) safe wrappers for `windows-rs` crate.
+
 pub use access_token_handle::*;
 pub use process_handle::*;
 pub use sid::*;
