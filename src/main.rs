@@ -26,7 +26,7 @@ fn main() -> Result<()> {
 
     let owner_sid = Sid::copy_raw(owner.Owner);
 
-    println!("Owner SID={:?}", owner_sid.lookup_local_account_sid());
+    println!("Owner SID={:?}", owner_sid.lookup_local_account());
 
     Ok(())
 }

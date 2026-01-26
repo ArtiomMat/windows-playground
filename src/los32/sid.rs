@@ -23,7 +23,7 @@ impl Sid {
         Self(buffer)
     }
 
-    pub fn lookup_local_account_sid(&self) -> Result<String> {
+    pub fn lookup_local_account(&self) -> Result<String> {
         let mut cch_name: u32 = 0;
         let mut cch_domain_name: u32 = 0;
         let mut peuse: SID_NAME_USE = unsafe { mem::zeroed() };

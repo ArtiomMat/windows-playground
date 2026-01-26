@@ -1,7 +1,10 @@
 use windows::Win32::Foundation::*;
+use windows::Win32::Security::Authorization::SE_KERNEL_OBJECT;
 use windows::Win32::Security::*;
 use windows::Win32::System::Threading::*;
 use windows::core::*;
+
+use super::{AsHandle, TypedHandle};
 
 use super::access_token_handle::AccessTokenHandle;
 
@@ -39,5 +42,17 @@ impl ProcessHandle {
 impl Drop for ProcessHandle {
     fn drop(&mut self) {
         unsafe { self.0.free() };
+    }
+}
+
+impl AsHandle for ProcessHandle {
+    fn as_handle(&self) -> HANDLE {
+        self.0
+    }
+}
+
+impl TypedHandle for ProcessHandle {
+    fn object_type(&self) -> Authorization::SE_OBJECT_TYPE {
+        SE_KERNEL_OBJECT
     }
 }
