@@ -11,18 +11,24 @@ mod los32;
 
 fn main() -> Result<()> {
     let args: Vec<String> = env::args().collect();
-    let pid: u32;
-
-    if args.len() > 1 {
-        pid = args[1].trim().parse().unwrap_or(0);
+    let pid: Option<u32> = if args.len() > 1 {
+        args[1].trim().parse().ok()
     } else {
-        println!("Usage: {} <PID>", args[0]);
-        return Err(WIN32_ERROR(0).into());
-    }
+        None
+    };
 
-    let process = ProcessHandle::open(PROCESS_QUERY_INFORMATION, false, pid)?;
+    let process = if let Some(pid) = pid {
+        ProcessHandle::open(PROCESS_QUERY_INFORMATION, false, pid)?
+    } else {
+        println!("PID provided is None, will use current process.");
+        ProcessHandle::get_current()
+    };
+    
     let token = process.open_token(TOKEN_ALL_ACCESS)?;
     let owner = token.get_owner()?;
+    
+    let info_result = process.get_security_info();
+    println!("Result of get_security_info()={:?}", info_result);
 
     let owner_sid = Sid::copy_raw(owner.Owner);
 

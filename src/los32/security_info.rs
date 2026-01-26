@@ -1,47 +1,62 @@
+use std::{ffi, mem, ptr};
+
 use super::{Sid, TypedHandle};
 
-use windows::Win32::Foundation::{ERROR_SUCCESS, GetLastError, LocalFree};
+use windows::Win32::Foundation::{ERROR_SUCCESS, GetLastError, HLOCAL, LocalFree, WIN32_ERROR};
 use windows::Win32::Security::Authorization::GetSecurityInfo;
 use windows::Win32::Security::*;
 use windows::core::*;
 
-struct SecurityInfo {
-    pub owner_sid: Sid,
-    pub group_sid: Sid,
-    pub dacl: ACL,
-    pub sacl: ACL,
-    internal: OBJECT_SECURITY_INFORMATION,
+#[derive(Debug)]
+pub struct SecurityInfo {
+    pub owner_sid: PSID,
+    pub group_sid: PSID,
+    pub dacl: *mut ACL,
+    pub sacl: *mut ACL,
+    ptr: PSECURITY_DESCRIPTOR,
 }
 
 impl Drop for SecurityInfo {
     fn drop(&mut self) {
-        
+        _ = unsafe { LocalFree(Some(HLOCAL(self.ptr.0 as *mut ffi::c_void))) };
     }
 }
 
-trait SecurityInfoFetcher: TypedHandle {
+pub trait SecurityInfoFetcher: TypedHandle {
     fn get_security_info(&self) -> Result<SecurityInfo> {
+        let mut owner_sid: PSID = PSID(ptr::null_mut());
+        let mut group_sid: PSID = PSID(ptr::null_mut());
+        let mut dacl: *mut ACL = ptr::null_mut();
+        let mut sacl: *mut ACL = ptr::null_mut();
+        let mut ptr: PSECURITY_DESCRIPTOR = unsafe { mem::zeroed() };
+
         unsafe {
             let error = GetSecurityInfo(
                 self.as_handle(),
                 self.object_type(),
-                OBJECT_SECURITY_INFORMATION(0),
-                None,
-                None,
-                None,
-                None,
-                None,
+                OWNER_SECURITY_INFORMATION
+                    | GROUP_SECURITY_INFORMATION
+                    | DACL_SECURITY_INFORMATION
+                    | SACL_SECURITY_INFORMATION,
+                Some(&mut owner_sid),
+                Some(&mut group_sid),
+                Some(&mut dacl),
+                Some(&mut sacl),
+                Some(&mut ptr),
             );
 
             if error != ERROR_SUCCESS {
-                return Err(GetLastError().into());
+                return Err(error.into());
             }
         }
 
-        Ok(())
+        Ok(SecurityInfo{
+            owner_sid,
+            group_sid,
+            dacl,
+            sacl,
+            ptr
+        })
     }
 }
 
-// impl<T> SecurityInfoFetcher for T where T: TypedHandle {
-
-// }

@@ -4,7 +4,7 @@ use windows::Win32::Security::*;
 use windows::Win32::System::Threading::*;
 use windows::core::*;
 
-use super::{AsHandle, TypedHandle};
+use super::{AsHandle, TypedHandle, SecurityInfoFetcher};
 
 use super::access_token_handle::AccessTokenHandle;
 
@@ -56,3 +56,5 @@ impl TypedHandle for ProcessHandle {
         SE_KERNEL_OBJECT
     }
 }
+
+impl SecurityInfoFetcher for ProcessHandle {}

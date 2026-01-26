@@ -7,6 +7,7 @@ pub use process_handle::*;
 pub use sid::*;
 pub(self) use aligned_buffer::*;
 pub use handles::*;
+pub use security_info::*;
 
 pub mod access_token_handle;
 pub mod process_handle;
