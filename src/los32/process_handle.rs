@@ -12,6 +12,8 @@ pub struct ProcessHandle(HANDLE);
 
 impl ProcessHandle {
     pub fn get_current() -> Self {
+        // SAFETY: This is safe because GetCurrentProcess() is guaranteed to
+        //         return a valid handle.
         Self(unsafe { GetCurrentProcess() })
     }
 
@@ -20,6 +22,8 @@ impl ProcessHandle {
         binherithandle: bool,
         dwprocessid: u32,
     ) -> Result<Self> {
+        // SAFETY: This is safe because we handle the case of an error.
+        //         None of the parameters can cause UB, only errors.
         unsafe {
             let h = OpenProcess(dwdesiredaccess, binherithandle, dwprocessid)?;
             Ok(Self(h))
@@ -41,6 +45,7 @@ impl ProcessHandle {
 
 impl Drop for ProcessHandle {
     fn drop(&mut self) {
+        // SAFETY: This is safe because free() simply does CloseHandle().
         unsafe { self.0.free() };
     }
 }
