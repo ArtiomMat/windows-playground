@@ -2,9 +2,9 @@ use windows::Win32::Foundation::*;
 use windows::Win32::Security::*;
 use windows::core::*;
 
-use super::Buf;
+use crate::core::Buf;
 
-pub struct AccessTokenHandle(pub(super) HANDLE);
+pub struct AccessTokenHandle(pub(crate) HANDLE);
 
 impl AccessTokenHandle {
     /// Returns a Box(subject to change due to UB, see FIXME), which has the

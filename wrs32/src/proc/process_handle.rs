@@ -4,9 +4,9 @@ use windows::Win32::Security::*;
 use windows::Win32::System::Threading::*;
 use windows::core::*;
 
-use super::{AsHandle, TypedHandle, SecurityInfoFetcher};
+use crate::core::{AsHandle, TypedHandle};
 
-use super::access_token_handle::AccessTokenHandle;
+use crate::ac::{AccessTokenHandle, SecurityInfoFetcher};
 
 pub struct ProcessHandle(HANDLE);
 

@@ -3,7 +3,7 @@ use std::mem;
 use windows::Win32::Security::*;
 use windows::core::*;
 
-use super::*;
+use crate::core::VarBuf;
 
 pub struct Sid(VarBuf<u8>);
 

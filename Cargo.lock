@@ -36,6 +36,7 @@ name = "uac"
 version = "0.1.0"
 dependencies = [
  "windows",
+ "wrs32",
 ]
 
 [[package]]
@@ -152,4 +153,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3949bd5b99cafdf1c7ca86b43ca564028dfe27d66958f2470940f73d86d75b37"
 dependencies = [
  "windows-link",
+]
+
+[[package]]
+name = "wrs32"
+version = "0.1.0"
+dependencies = [
+ "windows",
 ]

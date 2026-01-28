@@ -4,9 +4,9 @@ use windows::Win32::Security::*;
 use windows::Win32::System::Threading::*;
 use windows::core::*;
 
+use wrs32::ac::{SecurityInfoFetcher, Sid};
+use wrs32::proc::{ProcessHandle};
 use wrs32::*;
-
-mod wrs32;
 
 fn main() -> Result<()> {
     let args: Vec<String> = env::args().collect();
