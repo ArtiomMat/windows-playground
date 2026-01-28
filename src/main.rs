@@ -5,9 +5,9 @@ use windows::Win32::Security::*;
 use windows::Win32::System::Threading::*;
 use windows::core::*;
 
-use los32::*;
+use wrs32::*;
 
-mod los32;
+mod wrs32;
 
 fn main() -> Result<()> {
     let args: Vec<String> = env::args().collect();

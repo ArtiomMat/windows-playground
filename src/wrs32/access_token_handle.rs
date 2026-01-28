@@ -4,6 +4,8 @@ use windows::Win32::Foundation::*;
 use windows::Win32::Security::*;
 use windows::core::*;
 
+use super::Buf;
+
 pub struct AccessTokenHandle(pub(super) HANDLE);
 
 impl AccessTokenHandle {
@@ -18,7 +20,7 @@ impl AccessTokenHandle {
     unsafe fn get_information<T>(
         &self,
         tokeninformationclass: TOKEN_INFORMATION_CLASS,
-    ) -> Result<Box<T>> {
+    ) -> Result<Buf<T>> {
         let mut needed_size: u32 = 0;
         // SAFETY: Calling GetTokenInformation() with a null buffer and size=0
         //         is the documented way to query the required buffer size. The 
@@ -35,19 +37,8 @@ impl AccessTokenHandle {
             );
         }
 
-        assert!(
-            needed_size as usize >= mem::size_of::<T>(),
-            "Needed size is too small for T, most likely a mismatch between T and the class given"
-        );
-
         let allocated_size = needed_size as usize;
-        let layout = alloc::Layout::from_size_align(allocated_size, mem::align_of::<T>()).unwrap();
-        // SAFETY: Allocation is done with alignment of T alongside a checked
-        //         size for the buffer.
-        let info_buffer = unsafe {
-            ptr::NonNull::new(alloc::alloc(layout))
-                .unwrap_or_else(|| alloc::handle_alloc_error(layout))
-        };
+        let info_buffer = Buf::<T>::new(allocated_size);
 
         // SAFETY: This is safe because:
         //         1. The handle(self.0) is guaranteed to stay valid until the
@@ -61,7 +52,7 @@ impl AccessTokenHandle {
             GetTokenInformation(
                 self.0,
                 tokeninformationclass,
-                Some(info_buffer.as_ptr() as *mut ffi::c_void),
+                Some(info_buffer.as_c_void_ptr()),
                 allocated_size as u32,
                 &mut needed_size,
             )?;
@@ -70,13 +61,11 @@ impl AccessTokenHandle {
         if needed_size as usize != allocated_size {
             Err(unsafe { GetLastError() }.into())
         } else {
-            // FIXME: Box<T> assumes the size is only T, but it may be more.
-            let result = unsafe { Box::<T>::from_raw(info_buffer.as_ptr() as *mut T) };
-            Ok(result)
+            Ok(info_buffer)
         }
     }
 
-    pub fn get_owner(&self) -> Result<Box<TOKEN_OWNER>> {
+    pub fn get_owner(&self) -> Result<Buf<TOKEN_OWNER>> {
         // SAFETY: TOKEN_OWNER type is expected given TokenOwner class.
         unsafe { self.get_information::<TOKEN_OWNER>(TokenOwner) }
     }

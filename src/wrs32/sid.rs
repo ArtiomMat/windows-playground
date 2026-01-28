@@ -8,16 +8,16 @@ use windows::core::*;
 
 use super::aligned_buffer::*;
 
-pub struct Sid(AlignedBuffer<u8>);
+pub struct Sid(Buf<u8>);
 
 impl Sid {
     pub fn copy_raw(psid: PSID) -> Self {
         let size = unsafe { GetLengthSid(psid) } as usize;
         // SIDs should be 4-byte aligned
-        let buffer = unsafe { AlignedBuffer::<u8>::new_custom_aligned(size, 4) };
+        let buffer = Buf::<u8>::new_custom_aligned(size, 4);
 
         unsafe {
-            std::ptr::copy_nonoverlapping(psid.0 as *const u8, buffer.ptr, size);
+            std::ptr::copy_nonoverlapping(psid.0 as *const u8, buffer.as_ptr(), size);
         }
 
         Self(buffer)
@@ -30,7 +30,7 @@ impl Sid {
         unsafe {
             LookupAccountSidW(
                 None,
-                PSID(self.0.as_c_void_ptr_mut()),
+                PSID(self.0.as_c_void_ptr()),
                 None,
                 &mut cch_name,
                 None,
@@ -39,20 +39,20 @@ impl Sid {
             )
             .expect_err("Expected to fail here due to only querying");
 
-            let name = AlignedBuffer::new(cch_name as usize);
-            let domain_name = AlignedBuffer::new(cch_domain_name as usize);
+            let name = Buf::<u16>::new(cch_name as usize);
+            let domain_name = Buf::<u16>::new(cch_domain_name as usize);
 
             LookupAccountSidW(
                 None,
-                PSID(self.0.as_c_void_ptr_mut()),
-                Some(PWSTR::from_raw(name.ptr)),
+                PSID(self.0.as_c_void_ptr()),
+                Some(PWSTR::from_raw(name.as_ptr())),
                 &mut cch_name,
-                Some(PWSTR::from_raw(domain_name.ptr)),
+                Some(PWSTR::from_raw(domain_name.as_ptr())),
                 &mut cch_domain_name,
                 &mut peuse,
             )?;
 
-            Ok(PWSTR::from_raw(name.ptr).to_string()?)
+            Ok(PWSTR::from_raw(name.as_ptr()).to_string()?)
         }
     }
 }

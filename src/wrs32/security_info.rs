@@ -28,10 +28,13 @@ pub trait SecurityInfoFetcher: TypedHandle {
         let mut group_sid: PSID = PSID(ptr::null_mut());
         let mut dacl: *mut ACL = ptr::null_mut();
         let mut sacl: *mut ACL = ptr::null_mut();
+
+        // SAFETY: This is safe because it will be overriden below.
         let mut ptr: PSECURITY_DESCRIPTOR = unsafe { mem::zeroed() };
 
-        unsafe {
-            let error = GetSecurityInfo(
+        // SAFETY: This is safe because 
+        let error = unsafe {
+            GetSecurityInfo(
                 self.as_handle(),
                 self.object_type(),
                 OWNER_SECURITY_INFORMATION
@@ -43,11 +46,11 @@ pub trait SecurityInfoFetcher: TypedHandle {
                 Some(&mut dacl),
                 Some(&mut sacl),
                 Some(&mut ptr),
-            );
+            )
+        };
 
-            if error != ERROR_SUCCESS {
-                return Err(error.into());
-            }
+        if error != ERROR_SUCCESS {
+            return Err(error.into());
         }
 
         Ok(SecurityInfo{
