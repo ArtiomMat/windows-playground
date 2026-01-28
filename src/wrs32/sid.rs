@@ -1,3 +1,4 @@
+use core::ffi;
 use std::mem;
 use std::ptr;
 
@@ -6,19 +7,27 @@ use windows::Win32::Security::*;
 use windows::Win32::System::Threading::*;
 use windows::core::*;
 
-use super::aligned_buffer::*;
+use super::*;
 
-pub struct Sid(Buf<u8>);
+pub struct Sid(VarBuf<u8>);
 
 impl Sid {
+    /// Copies a raw `SID`.
+    /// 
+    /// # Panics if invalid.
+    /// 
+    /// If SID is invalid will panic.
     pub fn copy_raw(psid: PSID) -> Self {
-        let size = unsafe { GetLengthSid(psid) } as usize;
-        // SIDs should be 4-byte aligned
-        let buffer = Buf::<u8>::new_custom_aligned(size, 4);
+        assert!(!psid.is_invalid());
 
-        unsafe {
-            std::ptr::copy_nonoverlapping(psid.0 as *const u8, buffer.as_ptr(), size);
-        }
+        let size = unsafe { GetLengthSid(psid) } as usize;
+        // SAFETY: This is safe because:
+        //         1. 4-byte aligned like SIDs need to be.
+        //         2. Size is in bytes and is given by GetLengthSid.
+        //         3. And psid is asserted to be valid.
+        let buffer =  unsafe {
+            VarBuf::<u8>::from_aligned_raw(size, 4, psid.0 as *const u8)
+        };
 
         Self(buffer)
     }
@@ -39,20 +48,20 @@ impl Sid {
             )
             .expect_err("Expected to fail here due to only querying");
 
-            let name = Buf::<u16>::new(cch_name as usize);
-            let domain_name = Buf::<u16>::new(cch_domain_name as usize);
+            let mut name = vec![0u16; cch_name as usize];
+            let mut domain_name = vec![0u16; cch_domain_name as usize];
 
             LookupAccountSidW(
                 None,
                 PSID(self.0.as_c_void_ptr()),
-                Some(PWSTR::from_raw(name.as_ptr())),
+                Some(PWSTR::from_raw(name.as_mut_ptr())),
                 &mut cch_name,
-                Some(PWSTR::from_raw(domain_name.as_ptr())),
+                Some(PWSTR::from_raw(domain_name.as_mut_ptr())),
                 &mut cch_domain_name,
                 &mut peuse,
             )?;
 
-            Ok(PWSTR::from_raw(name.as_ptr()).to_string()?)
+            Ok(PWSTR::from_raw(name.as_mut_ptr()).to_string()?)
         }
     }
 }

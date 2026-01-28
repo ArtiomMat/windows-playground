@@ -13,16 +13,20 @@ pub struct Buf<T> {
 }
 
 impl<T> Buf<T> {
-    /// Allocates a zeroed buffer that is not necessarily aligned to `T`,
-    /// you choose.
+    /// Allocates a buffer that is not necessarily aligned to `T`,
+    /// you choose. The buffer is reset to `value`.
     ///
-    /// Don't forget to actually copy data.
+    /// # The rest of the buffer
+    ///
+    /// After the `T` part, the rest of the buffer is in an undefined state.
+    /// You cannot directly access it via the given API, but if you choose to,
+    /// you must ensure that it is initialized by you.
     ///
     /// # Panics
     ///
     /// - If alignment is not a multiple of `T`.
     /// - If size is not more or equal to `T`.
-    pub fn new_custom_aligned(size: usize, alignment: usize) -> Self {
+    pub fn new_aligned(size: usize, alignment: usize, value: T) -> Self {
         assert!(size >= mem::size_of::<T>(), "Size must be >= T!");
         assert!(
             alignment % mem::align_of::<T>() == 0,
@@ -32,26 +36,26 @@ impl<T> Buf<T> {
         let layout = alloc::Layout::from_size_align(size, alignment).unwrap();
 
         // SAFETY: This is safe because:
-        //         1. T can fit in the allocated buffer.
-        //         2. The buffer is aligned to T.
+        //         1. `T` can fit in the allocated buffer.
+        //         2. The buffer is aligned to `T`.
         //         3. Allocation erros are handled.
-        let ptr = unsafe {
+        let mut ptr = unsafe {
             ptr::NonNull::new(alloc::alloc(layout) as *mut T)
                 .unwrap_or_else(|| alloc::handle_alloc_error(layout))
         };
 
+        // SAFETY: This is safe because `value` is valid and `ptr` is both
+        //         aligned and non-null.
+        unsafe {
+            *ptr.as_mut() = value;
+        }
+
         Self { ptr, layout }
     }
 
-    /// Allocates a zeroed buffer that is aligned to `T`.
-    ///
-    /// Don't forget to actually copy data here
-    ///
-    /// # Panics
-    ///
-    /// See [Self::new_custom_aligned].
-    pub fn new(size: usize) -> Self {
-        Self::new_custom_aligned(size, mem::align_of::<T>())
+    /// See [Self::new_custom_aligned], but alignment is just native `T`.
+    pub fn new(size: usize, value: T) -> Self {
+        Self::new_aligned(size, mem::align_of::<T>(), value)
     }
 
     pub fn as_ptr(&self) -> *mut T {
