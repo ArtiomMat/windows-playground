@@ -1,8 +1,8 @@
 use std::{ffi, mem, ptr};
 
-use super::{Sid, TypedHandle};
+use super::TypedHandle;
 
-use windows::Win32::Foundation::{ERROR_SUCCESS, GetLastError, HLOCAL, LocalFree, WIN32_ERROR};
+use windows::Win32::Foundation::{ERROR_SUCCESS, HLOCAL, LocalFree};
 use windows::Win32::Security::Authorization::GetSecurityInfo;
 use windows::Win32::Security::*;
 use windows::core::*;

@@ -1,6 +1,6 @@
 use std::ops::{Index, IndexMut};
 
-use std::{alloc, ffi, mem, ptr};
+use std::{ffi, mem};
 
 use super::buf::Buf;
 

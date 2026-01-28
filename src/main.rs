@@ -1,6 +1,5 @@
 use std::env;
 
-use windows::Win32::Foundation::*;
 use windows::Win32::Security::*;
 use windows::Win32::System::Threading::*;
 use windows::core::*;
