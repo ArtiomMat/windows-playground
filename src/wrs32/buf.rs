@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 use std::{alloc, ffi, mem, ptr};
 
 /// Similar to `Box<T>` but easier to shoot yourself in the foot.
@@ -76,6 +76,14 @@ impl<T> Deref for Buf<T> {
     }
 }
 
+impl<T> DerefMut for Buf<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        // SAFETY: This is safe because ptr is NonNull.
+        //         Guaranteed to be aligned.
+        unsafe { &mut *(self.ptr.as_ptr()) }
+    }
+}
+
 impl<T> Drop for Buf<T> {
     fn drop(&mut self) {
         // SAFETY: This is safe because the exact same layout is used.
@@ -85,3 +93,51 @@ impl<T> Drop for Buf<T> {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(Clone)]
+    struct X {
+        a: i32,
+        b: String,
+        c: Box<i32>
+    }
+
+    impl Default for X {
+        fn default() -> Self {
+            Self { a: Default::default(), b: Default::default(), c: Default::default() }
+        }
+    }
+
+    fn create_some_x() -> X {
+        X {
+            a: 123,
+            b: "Hello".into(),
+            c: Box::new(67)
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "Size must be >= T!")]
+    fn sanity_value_panic_size() {
+        _ = Buf::<X>::new_aligned(1, mem::align_of::<X>(), X::default());
+    }
+
+    #[test]
+    #[should_panic(expected = "Alignment must be a multiple of T")]
+    fn sanity_value_panic_align() {
+        _ = Buf::<X>::new_aligned(mem::size_of::<X>(), 3, X::default());
+    }
+
+    #[test]
+    fn sanity_value() {
+        for size in [mem::size_of::<X>(), mem::size_of::<X>() * 3, mem::size_of::<X>() + 3] {
+            let mut x = Buf::<X>::new_aligned(size, mem::align_of::<X>(), create_some_x());
+            x.a = 55;
+            assert!(x.a == 55);
+            assert!(x.b == "Hello");
+            assert!(*x.c == 67);
+        }
+    }
+}
