@@ -1,6 +1,6 @@
-use windows::Win32::Foundation::*;
-use windows::Win32::Security::*;
-use windows::core::*;
+use windows::Win32::Foundation::{ERROR_INSUFFICIENT_BUFFER, ERROR_SUCCESS, HANDLE};
+use windows::Win32::Security::{GetTokenInformation, TOKEN_INFORMATION_CLASS};
+use windows::core::{Result};
 
 use crate::core::Buf;
 
@@ -17,7 +17,7 @@ impl AccessTokenHandle {
     /// panic.
     unsafe fn get_information<T>(
         &self,
-        tokeninformationclass: TOKEN_INFORMATION_CLASS,
+        token_information_class: TOKEN_INFORMATION_CLASS,
     ) -> Result<Buf<T>>
     where
         T: Default,
@@ -29,7 +29,7 @@ impl AccessTokenHandle {
         //         initialized out-parameter. It is asserted that there is both
         //         the right error and size of the buffer.
         unsafe {
-            let err = GetTokenInformation(self.0, tokeninformationclass, None, 0, &mut needed_size)
+            let err = GetTokenInformation(self.0, token_information_class, None, 0, &mut needed_size)
                 .err()
                 .unwrap_or(ERROR_SUCCESS.into());
             assert!(
@@ -52,7 +52,7 @@ impl AccessTokenHandle {
         unsafe {
             GetTokenInformation(
                 self.0,
-                tokeninformationclass,
+                token_information_class,
                 Some(info_buffer.as_c_void_ptr()),
                 allocated_size as u32,
                 &mut needed_size,

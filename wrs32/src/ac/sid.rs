@@ -1,7 +1,7 @@
 use std::mem;
 
-use windows::Win32::Security::*;
-use windows::core::*;
+use windows::Win32::Security::{GetLengthSid, LookupAccountSidW, PSID, SID_NAME_USE};
+use windows::core::{Result, PWSTR};
 
 use crate::core::VarBuf;
 

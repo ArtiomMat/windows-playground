@@ -1,8 +1,8 @@
-use windows::Win32::Foundation::*;
-use windows::Win32::Security::Authorization::SE_KERNEL_OBJECT;
-use windows::Win32::Security::*;
-use windows::Win32::System::Threading::*;
-use windows::core::*;
+use windows::Win32::Foundation::{GetLastError, HANDLE, INVALID_HANDLE_VALUE};
+use windows::Win32::Security::Authorization::{SE_KERNEL_OBJECT, SE_OBJECT_TYPE};
+use windows::Win32::Security::TOKEN_ACCESS_MASK;
+use windows::Win32::System::Threading::{GetCurrentProcess, OpenProcess, OpenProcessToken, PROCESS_ACCESS_RIGHTS};
+use windows::core::{Free, Result};
 
 use crate::core::{AsHandle, TypedHandle};
 
@@ -18,14 +18,14 @@ impl ProcessHandle {
     }
 
     pub fn open(
-        dwdesiredaccess: PROCESS_ACCESS_RIGHTS,
-        binherithandle: bool,
-        dwprocessid: u32,
+        desired_access: PROCESS_ACCESS_RIGHTS,
+        b_inherit_handle: bool,
+        pid: u32,
     ) -> Result<Self> {
         // SAFETY: This is safe because we handle the case of an error.
         //         None of the parameters can cause UB, only errors.
         unsafe {
-            let h = OpenProcess(dwdesiredaccess, binherithandle, dwprocessid)?;
+            let h = OpenProcess(desired_access, b_inherit_handle, pid)?;
             Ok(Self(h))
         }
     }
@@ -57,7 +57,7 @@ impl AsHandle for ProcessHandle {
 }
 
 impl TypedHandle for ProcessHandle {
-    fn object_type(&self) -> Authorization::SE_OBJECT_TYPE {
+    fn object_type(&self) -> SE_OBJECT_TYPE {
         SE_KERNEL_OBJECT
     }
 }

@@ -1,5 +1,5 @@
-use windows::Win32::Foundation::*;
-use windows::Win32::Security::Authorization::*;
+use windows::Win32::Foundation::HANDLE;
+use windows::Win32::Security::Authorization::SE_OBJECT_TYPE;
 
 pub trait AsHandle {
     fn as_handle(&self) -> HANDLE;
