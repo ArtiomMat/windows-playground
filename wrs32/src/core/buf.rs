@@ -3,6 +3,8 @@ use std::{alloc, ffi, mem, ptr};
 
 /// Similar to `Box<T>` but easier to shoot yourself in the foot.
 ///
+/// For any meaningful operation, `T` must be sized.
+///
 /// # `Buf<T> vs `Box<T>`
 ///
 /// Primary reason to prefer it over `Box<T>` is because it allows for
@@ -12,7 +14,10 @@ pub struct Buf<T> {
     layout: alloc::Layout,
 }
 
-impl<T> Buf<T> {
+impl<T> Buf<T>
+where
+    T: Sized,
+{
     /// Allocates a buffer that is not necessarily aligned to `T`,
     /// you choose. The buffer is reset to `value`.
     ///
@@ -24,13 +29,17 @@ impl<T> Buf<T> {
     ///
     /// # Panics
     ///
-    /// - If alignment is not a multiple of `T`.
+    /// - If alignment is not a multiple of `T` or a power of 2.
     /// - If size is not more or equal to `T`.
     pub fn new_aligned(size: usize, alignment: usize, value: T) -> Self {
         assert!(size >= mem::size_of::<T>(), "Size must be >= T!");
         assert!(
-            alignment % mem::align_of::<T>() == 0,
+            alignment.is_multiple_of(mem::align_of::<T>()),
             "Alignment must be a multiple of T"
+        );
+        assert!(
+            alignment.is_power_of_two(),
+            "Alignment must be a power of 2"
         );
 
         let layout = alloc::Layout::from_size_align(size, alignment).unwrap();
@@ -47,7 +56,7 @@ impl<T> Buf<T> {
         // SAFETY: This is safe because `value` is valid and `ptr` is both
         //         aligned and non-null.
         unsafe {
-            *ptr.as_mut() = value;
+            ptr::write(ptr.as_mut(), value);
         }
 
         Self { ptr, layout }
@@ -89,7 +98,11 @@ impl<T> Drop for Buf<T> {
         // SAFETY: This is safe because the exact same layout is used.
         //         And ptr was allocated with `alloc()` with this layout.
         //         Casting is safe because this is the original type.
-        unsafe { alloc::dealloc(self.ptr.as_ptr() as *mut u8, self.layout) };
+        //         T is initialized, hence a drop_in_place() is correct.
+        unsafe {
+            ptr::drop_in_place(self.ptr.as_ptr());
+            alloc::dealloc(self.ptr.as_ptr() as *mut u8, self.layout);
+        };
     }
 }
 
@@ -101,12 +114,16 @@ mod tests {
     struct X {
         a: i32,
         b: String,
-        c: Box<i32>
+        c: Box<i32>,
     }
 
     impl Default for X {
         fn default() -> Self {
-            Self { a: Default::default(), b: Default::default(), c: Default::default() }
+            Self {
+                a: Default::default(),
+                b: Default::default(),
+                c: Default::default(),
+            }
         }
     }
 
@@ -114,7 +131,7 @@ mod tests {
         X {
             a: 123,
             b: "Hello".into(),
-            c: Box::new(67)
+            c: Box::new(67),
         }
     }
 
@@ -132,7 +149,11 @@ mod tests {
 
     #[test]
     fn sanity_value() {
-        for size in [mem::size_of::<X>(), mem::size_of::<X>() * 3, mem::size_of::<X>() + 3] {
+        for size in [
+            mem::size_of::<X>(),
+            mem::size_of::<X>() * 3,
+            mem::size_of::<X>() + 3,
+        ] {
             let mut x = Buf::<X>::new_aligned(size, mem::align_of::<X>(), create_some_x());
             x.a = 55;
             assert!(x.a == 55);

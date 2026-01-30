@@ -1,6 +1,6 @@
-use windows::Win32::Foundation::{ERROR_INSUFFICIENT_BUFFER, ERROR_SUCCESS, HANDLE};
-use windows::Win32::Security::{GetTokenInformation, TOKEN_INFORMATION_CLASS};
-use windows::core::{Result};
+use windows::Win32::Foundation::{GetLastError, ERROR_INSUFFICIENT_BUFFER, ERROR_SUCCESS, HANDLE};
+use windows::Win32::Security::{GetTokenInformation, TokenOwner, TOKEN_INFORMATION_CLASS, TOKEN_OWNER};
+use windows::core::{Result, Free};
 
 use crate::core::Buf;
 
